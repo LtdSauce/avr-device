@@ -29,7 +29,7 @@ impl DownloadablePacks {
         let mut pack = DownloadablePack {
             name: name.to_string(),
             path_template: format!(
-                "{}/Microchip.{pack_name}.{{version}}.atpack",
+                "{}Microchip.{pack_name}.{{version}}.atpack",
                 DownloadablePacks::PACKS_URL
             ),
             selected_version: None,
@@ -54,9 +54,27 @@ pub struct DownloadablePack {
     available_versions: Vec<String>,
 }
 
+impl DownloadablePack {
+    pub fn version(&mut self, version: &str) -> &DownloadablePack {
+        if self.available_versions.contains(&version.to_string()) {
+            self.selected_version = Option::from(version.to_string());
+        }
+        self
+    }
+
+    fn url(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let url = self.path_template.replace("{version}", self.selected_version.as_ref().unwrap());
+        Ok(url)
+    }
+
+    fn download(&self) {
+        panic!("Not implemented!")
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::packs::{DownloadablePack, DownloadablePacks};
+    use crate::packs::DownloadablePacks;
 
     #[test]
     #[should_panic]
@@ -70,5 +88,14 @@ mod tests {
         let packs = DownloadablePacks { html_page: "BobAndMarry,\nMicrochip.ATmega_DFP.1.atpack//Microchip.ATmega_DFP.1.2.4.atpack".to_string() }
             .controller_family("atmega").unwrap();
         assert_eq!(packs.available_versions, vec!("1.2.4"))
+    }
+
+    #[test]
+    fn downloadable_pack_returns_download_url_for_selected_version() {
+        let url = DownloadablePacks {
+            html_page: "BobAndMarry,\nMicrochip.ATmega_DFP.1.1.2.atpack\
+        //Microchip.ATmega_DFP.1.2.4.atpack".to_string()
+        }.controller_family("atmega").unwrap().version("1.1.2").url();
+        assert_eq!(url.unwrap(), "https://packs.download.microchip.com/Microchip.ATmega_DFP.1.1.2.atpack")
     }
 }
