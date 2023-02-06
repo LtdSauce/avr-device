@@ -2,16 +2,14 @@ mod packs;
 
 use std::env;
 
-fn parse_args(args: Vec<String>) -> packs::PackInfo {
+fn parse_args(mut args: env::Args) -> packs::PackInfo {
     // ToDo emit error message and usage string
-    packs::PackInfo::from_str(&args[1])
+    packs::PackInfo::from_str(args.nth(1).as_ref().unwrap())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let pack = parse_args(env::args().collect());
+    let pack = parse_args(env::args());
     let pack = packs::DownloadablePacks::from_microchip_website()?.for_pack(&pack)?;
     println!("{pack:?}");
     Ok(())
 }
-
-
