@@ -10,10 +10,9 @@ pub struct PackInfo {
 
 impl PackInfo {
     pub fn from_str(arg: &str) -> PackInfo {
-        let mut splitted = arg.split("==");
-        PackInfo {
-            name: splitted.next().unwrap().to_string(),
-            selected_version: splitted.next().map(|s| s.to_string()),
+        match arg.split_once("==") {
+            Some((name, version)) => Self::from(name, version),
+            None => Self::from_name(arg)
         }
     }
 
@@ -40,7 +39,7 @@ pub struct DownloadablePacks {
 impl DownloadablePacks {
     const PACKS_URL: &str = "https://packs.download.microchip.com/";
 
-    pub fn from_microchip_website() -> Result<DownloadablePacks, Box<dyn std::error::Error>> {
+    pub fn from_microchip_website() -> Result<DownloadablePacks, reqwest::Error> {
         Ok(DownloadablePacks {
             html_page: reqwest::blocking::get(DownloadablePacks::PACKS_URL)?.text()?,
         })
@@ -74,14 +73,10 @@ fn parse_available_versions_from_html(
     html: &str,
     pack_name: &str,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let mut available_versions: Vec<String> = Vec::new();
     let re = Regex::new(&format!(
         r#"Microchip\.{pack_name}\.(\d*\.\d*\.\d*)\.atpack"#
     ))?;
-    for captures in re.captures_iter(html) {
-        available_versions.push(String::from(&captures[1]))
-    }
-    Ok(available_versions)
+    Ok(re.captures_iter(html).map(|captures| captures[1].to_string()).collect())
 }
 
 #[derive(Debug, PartialEq)]
