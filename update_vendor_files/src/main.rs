@@ -11,6 +11,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pack = parse_args(env::args());
     let pack = packs::DownloadablePacks::from_microchip_website()?.for_pack(pack)?;
     println!("{pack:?}");
-    pack.download();
+    println!("{}",pack.download()?.content.as_str());
     Ok(())
 }
