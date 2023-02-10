@@ -184,8 +184,8 @@ mod downloadable_packs_tests {
             html_page: "BobAndMarry".to_string(),
         }
         .for_pack(PackInfo {
-            name: "hurgel",
-            name_for_download: "hurgel",
+            name: "hurgel".to_string(),
+            name_for_download: "hurgel".to_string(),
             selected_version: None,
         })
         .unwrap();
