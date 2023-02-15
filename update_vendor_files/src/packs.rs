@@ -125,15 +125,22 @@ impl DownloadablePack {
     pub fn download(&self) -> Result<Pack, Box<dyn std::error::Error>> {
         let url = self.url();
         println!("Downloading {}", url);
-        // ToDo the following was never run but compiled (linker error though on windows..)
         let zip: VfsPath = MemoryFS::new().into();
-        zip.create_file()?.write(reqwest::blocking::get(url)?.bytes()?.as_ref())?;
+        zip.join("packs.zip")?.create_file()?.write(reqwest::blocking::get(url)?.bytes()?.as_ref())?;
+        println!("Downloaded.");
         Ok(Pack { content: zip })
     }
 }
 
 pub struct Pack {
     pub content: VfsPath,
+}
+
+impl Pack {
+    pub fn list_controllers(&self) -> Vec<String> {
+        // ToDo list every file contained in the atdf folder stripped of .atdf
+        Vec::new()
+    }
 }
 
 #[cfg(test)]
