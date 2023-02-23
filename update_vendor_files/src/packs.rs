@@ -137,10 +137,13 @@ pub struct Pack {
 }
 
 impl Pack {
-    pub fn list_controllers(&self) -> Vec<String> {
-        // ToDo list every file contained in the atdf folder stripped of .atdf
-        Vec::new()
-    }
+
+    const ATDF_PATH_IN_ZIP: &str = "atdf/";
+
+    pub fn list_controllers(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let zip_file = ZipArchive::new(self.content.join("packs.zip")?.open_file()?)?;
+        Ok(zip_file.file_names().filter(|s| s.contains(Pack::ATDF_PATH_IN_ZIP)).map(|s| s.to_string()).collect())    }
+        // TODO remove prefix atdf/ from every file name and also the .atdf suffix  
 }
 
 #[cfg(test)]
