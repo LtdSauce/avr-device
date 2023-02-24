@@ -127,7 +127,9 @@ impl DownloadablePack {
         let url = self.url();
         println!("Downloading {}", url);
         let zip: VfsPath = MemoryFS::new().into();
-        zip.join("packs.zip")?.create_file()?.write(reqwest::blocking::get(url)?.bytes()?.as_ref())?;
+        zip.join("packs.zip")?
+            .create_file()?
+            .write_all(reqwest::blocking::get(url)?.bytes()?.as_ref())?;
         println!("Downloaded.");
         Ok(Pack { content: zip })
     }
@@ -234,7 +236,7 @@ mod tests {
             "BobAndMarry,\nMicrochip.ATmega_DFP.1.atpack//Microchip.ATmega_DFP.1.2.4.atpack",
             "ATmega_DFP",
         )
-            .unwrap();
+        .unwrap();
         assert_eq!(versions, vec!("1.2.4"))
     }
 }
@@ -282,23 +284,23 @@ mod downloadable_packs_tests {
         DownloadablePacks {
             html_page: "BobAndMarry".to_string(),
         }
-            .for_pack(PackInfo {
-                name: "hurgel".to_string(),
-                name_for_download: "hurgel".to_string(),
-                selected_version: None,
-            })
-            .unwrap();
+        .for_pack(PackInfo {
+            name: "hurgel".to_string(),
+            name_for_download: "hurgel".to_string(),
+            selected_version: None,
+        })
+        .unwrap();
     }
 
     #[test]
     fn for_pack_finds_every_version_for_family() {
         let packs = DownloadablePacks {
             html_page:
-            "BobAndMarry,\nMicrochip.ATmega_DFP.1.atpack//Microchip.ATmega_DFP.1.2.4.atpack"
-                .to_string(),
+                "BobAndMarry,\nMicrochip.ATmega_DFP.1.atpack//Microchip.ATmega_DFP.1.2.4.atpack"
+                    .to_string(),
         }
-            .for_pack(PackInfo::from_name("atmega"))
-            .unwrap();
+        .for_pack(PackInfo::from_name("atmega"))
+        .unwrap();
         assert_eq!(packs.available_versions, vec!("1.2.4"))
     }
 }
@@ -324,8 +326,8 @@ mod downloadable_pack_test {
         //Microchip.ATmega_DFP.1.2.4.atpack"
                 .to_string(),
         }
-            .for_pack(PackInfo::from("atmega", "1.1.2"))
-            .unwrap();
+        .for_pack(PackInfo::from("atmega", "1.1.2"))
+        .unwrap();
         check_url(
             &pack,
             "https://packs.download.microchip.com/Microchip.ATmega_DFP.1.1.2.atpack",
@@ -339,8 +341,8 @@ mod downloadable_pack_test {
         //Microchip.ATmega_DFP.1.2.4.atpack"
                 .to_string(),
         }
-            .for_pack(PackInfo::from_str("atmega"))
-            .unwrap();
+        .for_pack(PackInfo::from_str("atmega"))
+        .unwrap();
         check_url(
             &pack,
             "https://packs.download.microchip.com/Microchip.ATmega_DFP.1.2.4.atpack",
