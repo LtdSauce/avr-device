@@ -1,6 +1,7 @@
 use std::io::Write;
+
 use regex::Regex;
-use vfs::{VfsPath, MemoryFS, FileSystem};
+use vfs::{MemoryFS, VfsPath};
 use zip::ZipArchive;
 
 // TODO improve error handling: at least swap panics with result errors?
@@ -137,13 +138,90 @@ pub struct Pack {
 }
 
 impl Pack {
-
     const ATDF_PATH_IN_ZIP: &str = "atdf/";
 
     pub fn list_controllers(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let zip_file = ZipArchive::new(self.content.join("packs.zip")?.open_file()?)?;
-        Ok(zip_file.file_names().filter(|s| s.contains(Pack::ATDF_PATH_IN_ZIP)).map(|s| s.to_string()).collect())    }
-        // TODO remove prefix atdf/ from every file name and also the .atdf suffix  
+
+        let mut controllers: Vec<String> = zip_file
+            .file_names()
+            .filter(|s| s.contains(Pack::ATDF_PATH_IN_ZIP))
+            .flat_map(|s| {
+                s.strip_prefix("atdf/")
+                    .and_then(|s| s.strip_suffix(".atdf"))
+            })
+            .map(|s| s.to_string())
+            .collect();
+        controllers.sort();
+        Ok(controllers)
+    }
+}
+
+#[cfg(test)]
+mod pack_tests {
+    use vfs::{MemoryFS, VfsPath};
+    use zip::ZipWriter;
+
+    use crate::packs::Pack;
+
+    fn put_files_in_content(files: &[&str]) -> Result<VfsPath, Box<dyn std::error::Error>> {
+        let mut zip_file = ZipWriter::new(std::io::Cursor::new(Vec::<u8>::new()));
+        for file in files {
+            zip_file.start_file(*file, zip::write::FileOptions::default())?;
+        }
+        let zip_file = zip_file.finish()?.into_inner();
+
+        let path: VfsPath = MemoryFS::new().into();
+        path.join("packs.zip")?.create_file()?.write(&zip_file)?;
+        Ok(path)
+    }
+
+    fn check_list_controllers(
+        files: &[&str],
+        expected_controllers: &[&str],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let content = put_files_in_content(files)?;
+        let pack = Pack { content };
+        assert_eq!(pack.list_controllers()?, expected_controllers);
+        Ok(())
+    }
+
+    macro_rules! generate_list_controller_test {
+        ($test_name:ident, $input:expr, $expected:expr) => {
+            #[test]
+            fn $test_name() -> Result<(), Box<dyn std::error::Error>> {
+                check_list_controllers($input, $expected)
+            }
+        };
+    }
+
+    generate_list_controller_test!(
+        list_controllers_returns_nothing_if_only_ignored_entries_present,
+        &["Bob", "Nested/Marry"],
+        &[]
+    );
+
+    #[test]
+    fn list_controllers_returns_atdf_controllers_if_only_atdf_files_present(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        check_list_controllers(
+            &["atdf/ATmega.atdf", "atdf/ATmega8.atdf"],
+            &["ATmega", "ATmega8"],
+        )
+    }
+
+    #[test]
+    fn list_controllers_returns_only_atdf_files_if_many_files_present(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        check_list_controllers(
+            &[
+                "atdf/ATmega.atdf",
+                "atdf/ATmega8.atdf",
+                "foo/atdf/bargel.foo",
+            ],
+            &["ATmega", "ATmega8"],
+        )
+    }
 }
 
 #[cfg(test)]
@@ -162,7 +240,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod pack_tests {
+mod pack_info_tests {
     use crate::packs::PackInfo;
 
     #[test]
